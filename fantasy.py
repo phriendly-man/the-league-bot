@@ -32,7 +32,8 @@ class YahooFantasyClient:
         try:
             standings = self._get_query().get_league_standings()
             result = []
-            for team in standings.teams.team:
+            teams_list = standings.teams.team if hasattr(standings.teams, 'team') else standings.teams
+            for team in (teams_list if isinstance(teams_list, list) else [teams_list]):
                 result.append({"rank": team.team_standings.rank, "name": str(team.name), "wins": team.team_standings.outcome_totals.wins, "losses": team.team_standings.outcome_totals.losses, "points_for": team.team_standings.points_for})
             return result
         except Exception as e:
