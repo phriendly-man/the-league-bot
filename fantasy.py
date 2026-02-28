@@ -58,7 +58,9 @@ class YahooFantasyClient:
 
     def get_standings(self):
         try:
+            logger.info("Getting standings...")
             standings = self._get_query().get_league_standings()
+            logger.info(f"Got standings: {type(standings)}")
             teams = standings.teams.team if hasattr(standings.teams, "team") else standings.teams
             if not isinstance(teams, list):
                 teams = [teams]
