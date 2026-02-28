@@ -1,6 +1,6 @@
 flask==3.0.3
 requests==2.32.3
-anthropic==0.34.2
-yfpy==11.3.0.post1
+anthropic
+yfpy
 python-dotenv==1.0.1
 gunicorn==22.0.0
