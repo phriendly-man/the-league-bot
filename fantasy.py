@@ -11,6 +11,7 @@ class YahooFantasyClient:
 
     def _get_query(self):
         if self._query is None:
+            logger.info(f"Initializing Yahoo query, token exists: {bool(os.environ.get('YAHOO_TOKEN_JSON'))}, league: {os.environ.get('YAHOO_LEAGUE_ID')}, game: {os.environ.get('YAHOO_GAME_ID')}")
             from yfpy.query import YahooFantasySportsQuery
             auth_dir = Path("/tmp/yahoo_auth")
             auth_dir.mkdir(exist_ok=True)
