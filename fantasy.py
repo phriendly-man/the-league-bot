@@ -22,6 +22,33 @@ class YahooFantasyClient:
             self._query = YahooFantasySportsQuery(auth_dir, self.league_id, game_id=self.game_id, game_code=self.game_code, consumer_key=os.environ.get("YAHOO_CLIENT_ID"), consumer_secret=os.environ.get("YAHOO_CLIENT_SECRET"))
         return self._query
 
+    def _parse_team(self, t):
+        try:
+            d = t.get("team", t) if isinstance(t, dict) else t
+            if isinstance(d, dict):
+                s = d.get("team_standings", {})
+                totals = s.get("outcome_totals", {})
+                manager = d.get("managers", {}).get("manager", {}).get("nickname", "Unknown")
+                return {
+                    "rank": s.get("rank", "?"),
+                    "name": d.get("name", "Unknown").decode() if isinstance(d.get("name", "Unknown"), bytes) else d.get("name", "Unknown"),
+                    "manager": manager,
+                    "wins": totals.get("wins", 0),
+                    "losses": totals.get("losses", 0),
+                    "points_for": s.get("points_for", 0),
+                }
+            else:
+                s = getattr(d, "team_standings", None)
+                return {
+                    "rank": getattr(s, "rank", "?"),
+                    "name": str(getattr(d, "name", "Unknown")),
+                    "wins": getattr(getattr(s, "outcome_totals", None), "wins", 0),
+                    "losses": getattr(getattr(s, "outcome_totals", None), "losses", 0),
+                    "points_for": getattr(s, "points_for", 0),
+                }
+        except Exception as e:
+            return {"error": str(e)}
+
     def get_league_info(self):
         try:
             return {"name": str(self._get_query().get_league_info().name), "season": "2025"}
@@ -31,11 +58,10 @@ class YahooFantasyClient:
     def get_standings(self):
         try:
             standings = self._get_query().get_league_standings()
-            result = []
-            teams_list = standings.teams.team if hasattr(standings.teams, 'team') else standings.teams
-            for team in (teams_list if isinstance(teams_list, list) else [teams_list]):
-                result.append({"rank": team.team_standings.rank, "name": str(team.name), "wins": team.team_standings.outcome_totals.wins, "losses": team.team_standings.outcome_totals.losses, "points_for": team.team_standings.points_for})
-            return result
+            teams = standings.teams.team if hasattr(standings.teams, "team") else standings.teams
+            if not isinstance(teams, list):
+                teams = [teams]
+            return [self._parse_team(t) for t in teams]
         except Exception as e:
             return [{"error": str(e)}]
 
