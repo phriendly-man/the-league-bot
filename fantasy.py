@@ -6,13 +6,13 @@ class YahooFantasyClient:
     def __init__(self):
         self.league_id = os.environ.get("YAHOO_LEAGUE_ID")
         self.game_code = "nfl"
-        self.game_id = int(os.environ.get("YAHOO_GAME_ID", "449"))
+        self.game_id = int(os.environ.get("YAHOO_GAME_ID", "461"))
         self._query = None
 
     def _get_query(self):
         if self._query is None:
             from yfpy.query import YahooFantasySportsQuery
-            auth_dir = Path("./yahoo_auth_temp")
+            auth_dir = Path("/tmp/yahoo_auth")
             auth_dir.mkdir(exist_ok=True)
             creds = {"consumer_key": os.environ.get("YAHOO_CLIENT_ID"), "consumer_secret": os.environ.get("YAHOO_CLIENT_SECRET")}
             (auth_dir / "private.json").write_text(json.dumps(creds))
@@ -24,7 +24,7 @@ class YahooFantasyClient:
 
     def get_league_info(self):
         try:
-            return {"name": str(self._get_query().get_league_info().name), "season": "2024"}
+            return {"name": str(self._get_query().get_league_info().name), "season": "2025"}
         except Exception as e:
             return {"error": str(e)}
 
