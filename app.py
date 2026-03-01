@@ -19,6 +19,7 @@ app = Flask(__name__)
 VERIFY_TOKEN = os.environ.get("FB_VERIFY_TOKEN")
 PAGE_ACCESS_TOKEN = os.environ.get("FB_PAGE_ACCESS_TOKEN")
 APP_SECRET = os.environ.get("FB_APP_SECRET")
+PAGE_ID = os.environ.get("FB_PAGE_ID")
 
 fantasy_client = YahooFantasyClient()
 ai = FantasyAI(fantasy_client)
@@ -53,26 +54,28 @@ def verify_webhook():
 @app.route("/webhook", methods=["POST"])
 def webhook():
     """Handle incoming messages from Facebook Messenger."""
-    # Verify the request signature
     signature = request.headers.get("X-Hub-Signature-256", "")
     if not verify_signature(request.data, signature):
         logger.warning("Invalid signature, rejecting request.")
         return "Unauthorized", 401
 
     data = request.get_json()
-    logger.info(f"Received webhook data: {json.dumps(data, indent=2)}")
 
     if data.get("object") == "page":
         for entry in data.get("entry", []):
             for event in entry.get("messaging", []):
-                sender_id = event.get("sender", {}).get("id")
-                message = event.get("message", {})
-                text = message.get("text", "")
+                # Skip echoes (bot's own sent messages)
+                if event.get("message", {}).get("is_echo"):
+                    continue
+                # Skip read receipts and delivery confirmations
+                if "read" in event or "delivery" in event:
+                    continue
 
-                if text and sender_id:
-                    # Don't respond to the page's own messages
-                    if sender_id == os.environ.get("FB_PAGE_ID"):
-                        continue
+                sender_id = event.get("sender", {}).get("id")
+                text = event.get("message", {}).get("text", "")
+
+                # Only handle real user text messages
+                if text and sender_id and sender_id != PAGE_ID:
                     handle_message(sender_id, text)
 
     return "OK", 200
@@ -83,13 +86,8 @@ def handle_message(sender_id: str, text: str):
     logger.info(f"Handling message from {sender_id}: {text}")
 
     try:
-        # Show typing indicator
         send_action(sender_id, "typing_on")
-
-        # Get AI response
         response = ai.answer(text)
-
-        # Send response
         send_message(sender_id, response)
 
     except Exception as e:
@@ -102,7 +100,6 @@ def handle_message(sender_id: str, text: str):
 
 def send_message(recipient_id: str, text: str):
     """Send a text message via the Messenger Send API."""
-    # Messenger has a 2000 char limit per message
     chunks = [text[i:i+2000] for i in range(0, len(text), 2000)]
     for chunk in chunks:
         payload = {
@@ -111,7 +108,7 @@ def send_message(recipient_id: str, text: str):
             "messaging_type": "RESPONSE"
         }
         response = requests.post(
-            f"https://graph.facebook.com/v19.0/me/messages",
+            "https://graph.facebook.com/v19.0/me/messages",
             params={"access_token": PAGE_ACCESS_TOKEN},
             json=payload
         )
@@ -126,7 +123,7 @@ def send_action(recipient_id: str, action: str):
         "sender_action": action
     }
     requests.post(
-        f"https://graph.facebook.com/v19.0/me/messages",
+        "https://graph.facebook.com/v19.0/me/messages",
         params={"access_token": PAGE_ACCESS_TOKEN},
         json=payload
     )
