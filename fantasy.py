@@ -59,8 +59,8 @@ class YahooFantasyClient:
                 self._query = YahooFantasySportsQuery(
                     AUTH_DIR,
                     self.league_id,
-                    game_id=self.game_id,
-                    game_code=self.game_code,
+                    self.game_id,
+                    self.game_code,
                     consumer_key=os.environ.get("YAHOO_CLIENT_ID"),
                     consumer_secret=os.environ.get("YAHOO_CLIENT_SECRET")
                 )
